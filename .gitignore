@@ -1,0 +1,15 @@
+# Ignore environment variables
+.env
+
+# Ignore node modules
+node_modules/
+
+# Ignore Prisma migrations (optional)
+prisma/migrations/
+
+# Ignore uploaded files
+uploads/
+
+# Ignore logs and temp files
+*.log
+temp/

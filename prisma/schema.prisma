@@ -1,0 +1,1109 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "mysql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+model Tender {
+  id              String            @id @default(uuid())
+  IDNO            String            @unique
+  title           String
+  description     String
+  requirements    String
+  startDate       DateTime
+  endDate         DateTime
+  budget          Int
+  attachment      String
+  bidEvaluation   BidEvaluation     @relation(fields: [bidEvaluationId], references: [id])
+  bidEvaluationId String
+  applicant       TenderApplicant[]
+  status          TenderStatus      @default(Open)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model TenderApplicant {
+  id         String                      @id @default(uuid())
+  name       String                      @unique
+  email      String?
+  phone      String                      @unique
+  attachment String
+  tender     Tender                      @relation(fields: [tenderId], references: [id])
+  tenderId   String
+  evaluation TenderApplicantEvaluation[]
+  totalScore Int                         @default(0)
+  maxScore   Int                         @default(0)
+  status     TenderApplicantStatus       @default(SUBMITTED)
+  comment    String?
+  reason     String?
+  createdAt  DateTime                    @default(now())
+  updatedAt  DateTime                    @updatedAt
+}
+
+model TenderApplicantEvaluation {
+  id          String          @id @default(uuid())
+  questions   String
+  score       Int
+  min         Int
+  max         Int
+  applicant   TenderApplicant @relation(fields: [applicantId], references: [id])
+  applicantId String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+enum TenderApplicantStatus {
+  SUBMITTED
+  REJECTED
+  WAITING
+  SHORTLISTED
+  AWARDED
+}
+
+model BidEvaluation {
+  id        String               @id @default(uuid())
+  IDNO      String               @unique
+  title     String
+  criteria  EvaluationCriteria[]
+  tender    Tender[]
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+}
+
+model EvaluationCriteria {
+  id              String        @id @default(uuid())
+  name            String
+  minValue        Int
+  maxValue        Int
+  bidEvaluation   BidEvaluation @relation(fields: [bidEvaluationId], references: [id])
+  bidEvaluationId String
+}
+
+model Vacancy {
+  id              String        @id @default(uuid())
+  IDNO            String        @unique
+  title           String
+  vacancyType     String
+  employementType String
+  interview       Interview     @relation(fields: [interviewId], references: [id])
+  interviewId     String
+  position        Position      @relation(fields: [positionId], references: [id])
+  positionId      String
+  gender          Sex
+  sector          String
+  experience      String
+  deadline        DateTime
+  vacancyNo       Int
+  salary          Int
+  description     String
+  applicant       Applicant[]
+  status          VacancyStatus @default(Open)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([positionId, deadline, gender, vacancyType, employementType, title])
+}
+
+model Applicant {
+  id         String               @id @default(uuid())
+  IDNO       String               @unique
+  employee   Employee             @relation(fields: [employeeId], references: [id])
+  employeeId String
+  vacancy    Vacancy              @relation(fields: [vacancyId], references: [id])
+  cv         String?
+  vacancyId  String
+  questions  ApplicantInterview[]
+  totalScore Int                  @default(0)
+  maxScore   Int                  @default(0)
+  status     ApplicantStatus      @default(Pending)
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+
+  @@unique([employeeId, vacancyId])
+}
+
+model Interview {
+  id         String          @id @default(uuid())
+  IDNO       String          @unique
+  title      String
+  position   Position        @relation(fields: [positionId], references: [id])
+  positionId String
+  questions  Question[]
+  vacancy    Vacancy[]
+  status     InterviewStatus @default(Active)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+}
+
+model Agreement {
+  id         String          @id @default(uuid())
+  IDNO       String          @unique
+  title      String
+  position   Position        @relation(fields: [positionId], references: [id])
+  positionId String
+  articles   Articles[]
+  status     InterviewStatus @default(Active)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+}
+
+model ApplicantInterview {
+  id          String    @id @default(uuid())
+  questions   String
+  score       Int
+  min         Int
+  max         Int
+  applicant   Applicant @relation(fields: [applicantId], references: [id])
+  applicantId String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// Question model
+model Question {
+  id          String    @id @default(uuid())
+  name        String
+  minValue    Int
+  maxValue    Int
+  interview   Interview @relation(fields: [interviewId], references: [id])
+  interviewId String
+}
+
+model Articles {
+  id          String    @id @default(uuid())
+  name        String
+  description String
+  agreement   Agreement @relation(fields: [agreementId], references: [id])
+  agreementId String
+}
+
+model Branch {
+  id         String       @id @default(uuid())
+  IDNO       String       @unique
+  name       String
+  city       String
+  subCity    String
+  wereda     String
+  Department Department[]
+  status     OrgStatus    @default(Active)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+}
+
+model Department {
+  id        String     @id @default(uuid())
+  IDNO      String     @unique
+  name      String
+  branch    Branch     @relation(fields: [branchId], references: [id])
+  branchId  String
+  positions Position[]
+  status    OrgStatus  @default(Active)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Position {
+  id                 String               @id @default(uuid())
+  IDNO               String               @unique
+  name               String
+  department         Department           @relation(fields: [departmentId], references: [id])
+  departmentId       String
+  status             OrgStatus            @default(Active)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  EmployeeWorkDetail EmployeeWorkDetail[]
+  interview          Interview[]
+  agreement          Agreement[]
+  vacancy            Vacancy[]
+}
+
+model BusinessInfo {
+  id      String @id @default(uuid())
+  name    String
+  phone   String
+  email   String
+  VAT     String
+  TIN     String
+  license String
+  profile String
+}
+
+model Employee {
+  id                    String                         @id @default(uuid())
+  IDNO                  String                         @unique
+  rank                  String
+  docNo                 Json
+  fullNameEnglish       String
+  fullName              String
+  dateOfBirth           DateTime
+  nationality           String
+  applicant             Applicant[]
+  sex                   EmployeeSex
+  status                EmployeeStatus                 @default(Active)
+  Profile               EmployeeProfile?
+  fingerPrint           EmployeeFingerPrint?
+  address               EmployeeAddress?
+  contact               EmployeeContact?
+  surety                EmployeeSurety?
+  relatedInfo           EmployeeRelatedInfo?
+  educationalBackground EmployeeEducationalBackground?
+  workDetail            EmployeeWorkDetail?
+  leaveBalance          LeaveBalance[]
+  leaveApplication      LeaveApplication[]
+  workHistory           EmployeeWorkHistory?
+  dailyReports          DailyReport[]  
+  createdAt             DateTime                       @default(now())
+  updatedAt             DateTime                       @updatedAt
+
+  @@unique([fullName, fullNameEnglish, nationality, dateOfBirth])
+}
+
+model EmployeeProfile {
+  id         String   @id @default(uuid())
+  profile    String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  employeeId String   @unique
+  IDNumber   Json
+  IDFront    String
+  IDBack     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model EmployeeFingerPrint {
+  id         String   @id @default(uuid())
+  features   String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  employeeId String   @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model EmployeeAddress {
+  id         String   @id @default(uuid())
+  city       String
+  subCity    String
+  wereda     Json
+  houseNo    Json
+  kebele     Json
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  employeeId String   @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model EmployeeContact {
+  id         String   @id @default(uuid())
+  phone      String
+  email      String?
+  otherPhone String?
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  employeeId String   @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model EmployeeSurety {
+  id         String   @id @default(uuid())
+  type       String
+  attachment String
+  fullName   String?
+  phone      String?
+  city       String?
+  subCity    String?
+  wereda     String?
+  kebele     String?
+  houseNo    String?
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  employeeId String   @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model EmployeeWorkDetail {
+  id                      String                   @id @default(uuid())
+  employementType         String
+  shift                   Json
+  salary                  String
+  startDate               DateTime
+  agreement               String
+  otherAgreement          String?
+  reasonForOtherAgreement String?
+  bankName                String?
+  bankAccount             String?
+  TIN                     String?
+  position                Position                 @relation(fields: [positionId], references: [id])
+  positionId              String
+  employee                Employee                 @relation(fields: [employeeId], references: [id])
+  employeeId              String                   @unique
+  witnesses               Witnesses[]
+  Project                 EmployeeProject[]
+  assetTransaction        AssetTransactionItems[]
+  employeePayroll         EmployeePayroll[]
+  employeeDiscipline      EmployeeDiscipline[]
+  systemUser              SystemUser?
+  employeeSalaryStructure EmployeeSalaryStructure?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+}
+
+model SystemUser {
+  id         String             @id @default(uuid())
+  IDNO       String             @unique
+  userName   String
+  email      String             @unique
+  password   String
+  token      String?
+  status     UserStatus         @default(Active)
+  access     SystemUserAccess[]
+  tasks      SystemUserTasks?
+  employee   EmployeeWorkDetail @relation(fields: [employeeId], references: [id])
+  employeeId String             @unique
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+}
+
+model SystemUserAccess {
+  id     String     @id @default(uuid())
+  userId String
+  user   SystemUser @relation(fields: [userId], references: [id])
+  access UserAccess
+}
+
+model SystemUserTasks {
+  id        String      @id @default(uuid())
+  task      SystemTasks @relation(fields: [taskId], references: [id])
+  taskId    String      @unique
+  user      SystemUser  @relation(fields: [userId], references: [id])
+  userId    String      @unique
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model SystemTasks {
+  id        String            @id @default(uuid())
+  name      String
+  code      String            @unique
+  userTasks SystemUserTasks[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+}
+
+model EmployeeDiscipline {
+  id                     String                    @id @default(uuid())
+  IDNO                   String                    @unique
+  incidentDate           DateTime
+  description            String
+  attachment             String?
+  employeeAcknowledgment String?
+  employeeWork           EmployeeWorkDetail        @relation(fields: [employeeWorkId], references: [id])
+  employeeWorkId         String
+  status                 EmployeeDisciplineStatus  @default(Pending)
+  witnesses              Witnesses[]
+  disciplineActions      EmployeeDisciplineAction?
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
+}
+
+model EmployeeDisciplineAction {
+  id             String             @id @default(uuid())
+  discipline     EmployeeDiscipline @relation(fields: [disciplineId], references: [id])
+  disciplineId   String             @unique
+  actionTaken    DisciplineActions  @relation(fields: [actionTakenId], references: [id])
+  actionTakenId  String
+  comments       String
+  aprovedBy      String
+  aproverComment String
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+}
+
+model DisciplineActions {
+  id                       String                     @id @default(uuid())
+  employeeDisciplineAction EmployeeDisciplineAction[]
+  name                     String
+  description              String
+  level                    String
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+}
+
+model Witnesses {
+  id                   String             @id @default(uuid())
+  employeeWork         EmployeeWorkDetail @relation(fields: [employeeWorkId], references: [id])
+  employeeWorkId       String
+  employeeDiscipline   EmployeeDiscipline @relation(fields: [employeeDisciplineId], references: [id])
+  employeeDisciplineId String
+}
+
+model EmployeeRelatedInfo {
+  id                       String   @id @default(uuid())
+  maritalStatus            String?
+  religion                 String?
+  ethnicGroup              String?
+  bloodGroup               String?
+  familyBg                 String?
+  motherFullName           String?
+  medicalReport            String
+  fingerPrintReport        String
+  emergencyContactName     String?
+  emergencyContactPhone    String?
+  emergencyContactRelation String?
+  employee                 Employee @relation(fields: [employeeId], references: [id])
+  employeeId               String   @unique
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+}
+
+model EmployeeEducationalBackground {
+  id            String   @id @default(uuid())
+  institution   String
+  qualification String
+  attachment    String
+  startDate     DateTime
+  endDate       DateTime
+  employee      Employee @relation(fields: [employeeId], references: [id])
+  employeeId    String   @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model EmployeeWorkHistory {
+  id         String   @id @default(uuid())
+  position   String
+  branch     String
+  department String
+  startDate  DateTime
+  endDate    DateTime
+  attachment String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  employeeId String   @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model DocType {
+  id        String        @id @default(uuid())
+  title     String
+  docFile   DocFile[]
+  docForm   DocTypeForm[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+enum DocTypeStatus {
+  Yes
+  No
+}
+
+model DocTypeForm {
+  id          String     @id @default(uuid())
+  name        String
+  type        String
+  category    String
+  subCategory String?
+  docFiles    DocFiles[]
+  docType     DocType    @relation(fields: [docTypeId], references: [id])
+  docTypeId   String
+}
+
+model DocFile {
+  id        String       @id @default(uuid())
+  IDNO      String       @unique
+  docFiles  DocFiles[]
+  type      DocType      @relation(fields: [typeId], references: [id])
+  typeId    String
+  log       DocFileLog[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+model DocFileLog {
+  id        String    @id @default(uuid())
+  detail    Json
+  action    String
+  user      String
+  docFile   DocFile[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model DocFiles {
+  id        String      @id @default(uuid())
+  type      DocTypeForm @relation(fields: [typeId], references: [id])
+  typeId    String
+  docFile   DocFile     @relation(fields: [docFileId], references: [id])
+  docFileId String
+  value     Json
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model LeaveType {
+  id               String             @id @default(uuid())
+  name             String
+  maxLeaveDate     Int
+  applicableAfter  Int
+  repeat           Int
+  withPay          LeaveTypeStatus
+  leaveApplication LeaveApplication[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+}
+
+model LeaveApplication {
+  id          String                 @id @default(uuid())
+  employee    Employee               @relation(fields: [employeeId], references: [id])
+  employeeId  String
+  leaveType   LeaveType              @relation(fields: [leaveTypeId], references: [id])
+  leaveTypeId String
+  startDate   DateTime
+  endDate     DateTime
+  totalDay    Int
+  reason      String
+  attachment  String?
+  status      LeaveApplicationStatus @default(Pending)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+}
+
+model Holiday {
+  id        String   @id @default(uuid())
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  totalDay  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LeaveAllocation {
+  id         String   @id @default(uuid())
+  startMonth DateTime
+  endMonth   DateTime
+  count      Int
+  used       Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([startMonth, endMonth])
+}
+
+model LeaveBalance {
+  id         String             @id @default(uuid())
+  employee   Employee           @relation(fields: [employeeId], references: [id])
+  employeeId String
+  used       Int                @default(0)
+  balance    Int
+  year       DateTime
+  status     LeaveBalanceStatus @default(Active)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  @@unique([year, employeeId])
+}
+
+model TimeSheet {
+  id                String          @id @default(uuid())
+  employeeProject   EmployeeProject @relation(fields: [employeeProjectId], references: [id])
+  employeeProjectId String
+  regularPH         Int
+  regularPOTH       Int
+  OT32              Int
+  totalHours        Int
+  day               Int
+  month             Int
+  year              Int
+  status            TimeSheetStatus @default(Pending)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@unique([employeeProjectId, day, year, month])
+}
+
+model Company {
+  id             String          @id @default(uuid())
+  name           String          @unique
+  phone          String
+  email          String?         @unique
+  profile        String?
+  VAT            String?         @unique
+  TIN            String?         @unique
+  license        String?
+  agreement      String?
+  status         CompanyStatus   @default(Pending)
+  companyAddress CompanyAddress?
+  projects       Project[]
+  projectplan    ProjectPlan[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model CompanyAddress {
+  id        String  @id @default(uuid())
+  city      String
+  subCity   String
+  wereda    String?
+  kebele    String?
+  houseNo   String?
+  company   Company @relation(fields: [companyId], references: [id])
+  companyId String  @unique
+}
+
+model ProjectPlan {
+  id          String            @id @default(uuid())
+  company     Company           @relation(fields: [companyId], references: [id])
+  companyId   String
+  site        String            @unique
+  noSecurity  Int
+  price       Int
+  attachments String?
+  status      ProjectPlanStatus @default(Pending)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+model Project {
+  id          String            @id @default(uuid())
+  company     Company           @relation(fields: [companyId], references: [id])
+  companyId   String
+  site        String
+  city        String
+  subCity     String
+  noSecurity  Int
+  startDate   DateTime
+  endDate     DateTime?
+  price       Int               @default(1)
+  attachments String?
+  employees   EmployeeProject[]
+  payroll     Payroll[]
+  status      ProjectStatus     @default(Pending)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  taxCenter   TaxCenter @relation(fields: [taxCenterId], references: [id])
+  taxCenterId String
+
+  @@unique([site, companyId])
+}
+
+model TaxCenter {
+  id      String    @id @default(uuid())
+  name    String
+  account String
+  sites   Project[]
+}
+
+model EmployeeProject {
+  id           String                @id @default(uuid())
+  workDetail   EmployeeWorkDetail    @relation(fields: [workDetailId], references: [id])
+  workDetailId String
+  role         String
+  project      Project               @relation(fields: [projectId], references: [id])
+  projectId    String
+  timeSheet    TimeSheet[]
+  status       EmployeeProjectStatus @default(Active)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  @@unique([workDetailId, projectId])
+}
+
+model SalaryComponent {
+  id              String                       @id @default(uuid())
+  name            String                       @unique
+  type            SalaryComponentType
+  pension         PensionType                  @default(No)
+  tax             TaxType                      @default(No)
+  semiTaxType     SemiTaxType                  @default(None)
+  minNonTaxable   Int                          @default(0)
+  applicableAfter Int                          @default(1)
+  conditionType   SalaryComponentConditionType
+  salaryStructure SalaryStructure[]
+  status          SalaryComponentStatus        @default(Active)
+  createdAt       DateTime                     @default(now())
+  updatedAt       DateTime                     @updatedAt
+}
+
+model SalaryStructure {
+  id                    String              @id @default(uuid())
+  salaryStructureForm   SalaryStructureForm @relation(fields: [salaryStructureFormId], references: [id])
+  salaryStructureFormId String
+  salaryComponent       SalaryComponent     @relation(fields: [salaryComponentId], references: [id])
+  salaryComponentId     String
+  amount                Int
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+}
+
+model SalaryStructureForm {
+  id              String                    @id @default(uuid())
+  name            String                    @unique
+  salaryStructure SalaryStructure[]
+  employee        EmployeeSalaryStructure[]
+  status          SalaryComponentStatus     @default(Active)
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+}
+
+model EmployeeSalaryStructure {
+  id                    String                @id @default(uuid())
+  salaryStructureForm   SalaryStructureForm   @relation(fields: [salaryStructureFormId], references: [id])
+  salaryStructureFormId String
+  employeeWorkDetail    EmployeeWorkDetail    @relation(fields: [employeeWorkDetailId], references: [id])
+  employeeWorkDetailId  String                @unique
+  status                SalaryComponentStatus @default(Active)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+}
+
+model Payroll {
+  id              String            @id @default(uuid())
+  generatedBy     String
+  basedOn         String
+  positionId      String?
+  project         Project           @relation(fields: [projectId], references: [id])
+  projectId       String
+  from            DateTime
+  to              DateTime
+  ApprovedBy      String
+  employeePayroll EmployeePayroll[]
+  status          PayrollStatus     @default(Pending)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@unique([from, to, projectId])
+}
+
+model EmployeePayroll {
+  id                   String             @id @default(uuid())
+  payroll              Payroll            @relation(fields: [payrollId], references: [id])
+  payrollId            String
+  employeeWorkDetail   EmployeeWorkDetail @relation(fields: [employeeWorkDetailId], references: [id])
+  employeeWorkDetailId String
+  salary               String
+  totalEarning         String
+  grossSalary          String
+  totalDeduction       String
+  incomeTax            String
+  employeePension      String
+  employerPension      String
+  netSalary            String
+  status               PayrollStatus      @default(Pending)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+}
+
+enum ReportMagnitude {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum ReportStatus {
+  PENDING
+  IN_REVIEW
+  APPROVED
+  REJECTED
+}
+
+model DailyReport {
+  id          String          @id @default(uuid())
+  description String
+  date        DateTime
+  magnitude   ReportMagnitude
+  location    String
+  status      ReportStatus    @default(PENDING)
+  attachment  String?
+  employee    Employee        @relation(fields: [employeeId], references: [id])  
+  employeeId  String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@map("daily_reports")
+}
+
+model AssetCategory {
+  id          String      @id @default(uuid())
+  IDNO        String      @unique
+  name        String
+  description String
+  items       AssetItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model AssetType {
+  id          String      @id @default(uuid())
+  name        String
+  description String
+  items       AssetItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model AssetUnit {
+  id          String      @id @default(uuid())
+  name        String
+  description String
+  items       AssetItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model AssetItem {
+  id              String           @id @default(uuid())
+  IDNO            String           @unique
+  name            String
+  category        AssetCategory    @relation(fields: [categoryId], references: [id])
+  categoryId      String
+  type            AssetType        @relation(fields: [typeId], references: [id])
+  typeId          String
+  unit            AssetUnit        @relation(fields: [unitId], references: [id])
+  unitId          String
+  reorderQuantity Float?
+  minLevel        Float
+  maxLevel        Float?
+  description     String?
+  itemsBatch      AssetItemBatch[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@unique([name, categoryId, unitId])
+}
+
+model AssetItemBatch {
+  id               String                  @id @default(uuid())
+  IDNO             String                  @unique
+  assetItem        AssetItem               @relation(fields: [assetItemId], references: [id])
+  assetItemId      String
+  quantity         Float
+  stockLevel       Float
+  costPerUnit      Float
+  totalCost        Float
+  expirationDate   DateTime
+  storageLocation  String?
+  supplier         String?
+  transactionItems AssetTransactionItems[]
+  status           AssetBatchStatus        @default(InStock)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+}
+
+model AssetTransaction {
+  id        String                  @id @default(uuid())
+  RefNo     String
+  items     AssetTransactionItems[]
+  status    AssetTransactionStatus  @default(Pending)
+  createdAt DateTime                @default(now())
+  updatedAt DateTime                @updatedAt
+}
+
+model AssetTransactionItems {
+  id            String                      @id @default(uuid())
+  workDetail    EmployeeWorkDetail          @relation(fields: [workDetailId], references: [id])
+  workDetailId  String
+  batchItem     AssetItemBatch              @relation(fields: [batchItemId], references: [id])
+  batchItemId   String
+  quantity      Float
+  type          AssetTransationType
+  transaction   AssetTransaction            @relation(fields: [transactionId], references: [id])
+  transactionId String
+  status        AssetTransactionItemsStatus @default(Pending)
+  createdAt     DateTime                    @default(now())
+  updatedAt     DateTime                    @updatedAt
+}
+
+enum TimeSheetStatus {
+  Pending
+  Approved
+  Failed
+}
+
+enum AssetBatchStatus {
+  InStock
+  LowStock
+  OutOfStock
+  OverStocked
+  Reserved
+  Expired
+  BackOrdered
+  DueExpiry
+  InTransit
+}
+
+enum AssetTransactionStatus {
+  Full
+  Failed
+  Partial
+  Pending
+}
+
+enum AssetTransactionItemsStatus {
+  Approved
+  Failed
+  Pending
+}
+
+enum AssetTransationType {
+  UsedInPreparation
+  Wasted
+  Return
+}
+
+enum PayrollStatus {
+  Pending
+  Approved
+  Failed
+}
+
+enum LeaveBalanceStatus {
+  Active
+  Expired
+}
+
+enum PensionType {
+  Yes
+  No
+}
+
+enum UserAccess {
+  Create
+  Read
+  Update
+  File
+  Delete
+}
+
+enum UserStatus {
+  Active
+  InActive
+}
+
+enum TaxType {
+  Yes
+  Semi
+  No
+}
+
+enum SalaryComponentConditionType {
+  Add
+  Deduct
+  Pension
+  IncomeTax
+}
+
+enum SemiTaxType {
+  Fixed
+  Percent
+  None
+}
+
+enum ProjectStatus {
+  Pending
+  Active
+  Terminated
+}
+
+enum ProjectPlanStatus {
+  Approved
+  Failed
+  Pending
+}
+
+enum EmployeeDisciplineStatus {
+  Approved
+  Failed
+  Pending
+}
+
+enum EmployeeProjectStatus {
+  InActive
+  Active
+  Terminated
+}
+
+enum SalaryComponentStatus {
+  InActive
+  Active
+}
+
+enum SalaryComponentType {
+  Earning
+  Deduction
+}
+
+enum Sex {
+  Male
+  Female
+  Both
+}
+
+enum CompanyStatus {
+  Active
+  InActive
+  Pending
+}
+
+enum EmployeeSex {
+  Male
+  Female
+}
+
+enum VacancyStatus {
+  Open
+  Closed
+}
+
+enum TenderStatus {
+  Open
+  Closed
+  UNDER_EVALUATION
+  AWARDED
+}
+
+enum InterviewStatus {
+  Active
+  InActive
+}
+
+enum OrgStatus {
+  Active
+  InActive
+}
+
+enum LeaveTypeStatus {
+  Yes
+  No
+  Other
+}
+
+enum LeaveApplicationStatus {
+  Approved
+  Failed
+  Pending
+}
+
+enum EmployeeStatus {
+  Active
+  InActive
+  Terminated
+  Pending
+}
+
+enum ApplicantStatus {
+  Pending
+  Hired
+  Fail
+  Waiting
+}
